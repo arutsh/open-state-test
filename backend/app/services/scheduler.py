@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -35,6 +36,7 @@ def start_scheduler() -> None:
         hours=settings.sync_interval_hours,
         id="openstates_full_sync",
         replace_existing=True,
+        next_run_time=datetime.now(),
     )
     _scheduler.start()
 

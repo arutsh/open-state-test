@@ -55,7 +55,7 @@ proposals above. What I actually did:
 
 What I intended to do but didn't get to, due to time constraints:
 
-- **Code review before every commit.** Everything here landed in four large
+- **Code review before every commit.** Everything here landed in five large
   commits directly on `main` (see `git log`) instead of a reviewed
   branch/PR per change.
 - **A branch-per-change workflow**, where each OpenSpec change ships on its
