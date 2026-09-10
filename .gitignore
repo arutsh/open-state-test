@@ -2,13 +2,12 @@
 backend/.venv/
 backend/__pycache__/
 backend/**/__pycache__/
-backend/.env
-backend/*.db
+
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
-frontend/.env
+
 
 # Editors / OS
 .DS_Store
