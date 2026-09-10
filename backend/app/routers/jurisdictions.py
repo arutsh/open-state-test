@@ -1,7 +1,7 @@
-from collections import Counter
+from collections import Counter, defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -24,9 +24,29 @@ def _get_jurisdiction_or_404(db: Session, jurisdiction_id: str) -> Jurisdiction:
 
 
 @router.get("", response_model=list[JurisdictionOut])
-def list_jurisdictions(db: Session = Depends(get_db)) -> list[Jurisdiction]:
-    stmt = select(Jurisdiction).order_by(Jurisdiction.name)
-    return list(db.execute(stmt).scalars().all())
+def list_jurisdictions(db: Session = Depends(get_db)) -> list[JurisdictionOut]:
+    jurisdictions = list(
+        db.execute(select(Jurisdiction).order_by(Jurisdiction.name)).scalars().all()
+    )
+
+    party_counts_by_jurisdiction: dict[str, dict[str, int]] = defaultdict(dict)
+    count_rows = db.execute(
+        select(Legislator.jurisdiction_id, Legislator.party, func.count())
+        .group_by(Legislator.jurisdiction_id, Legislator.party)
+    ).all()
+    for jurisdiction_id, party, count in count_rows:
+        party_counts_by_jurisdiction[jurisdiction_id][party or "Unknown"] = count
+
+    return [
+        JurisdictionOut(
+            id=jurisdiction.id,
+            name=jurisdiction.name,
+            classification=jurisdiction.classification,
+            last_synced_at=jurisdiction.last_synced_at,
+            party_counts=party_counts_by_jurisdiction.get(jurisdiction.id, {}),
+        )
+        for jurisdiction in jurisdictions
+    ]
 
 
 @router.get(

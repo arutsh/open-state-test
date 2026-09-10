@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JurisdictionOut(BaseModel):
@@ -10,3 +10,4 @@ class JurisdictionOut(BaseModel):
     name: str
     classification: str
     last_synced_at: datetime | None
+    party_counts: dict[str, int] = Field(default_factory=dict)

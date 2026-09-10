@@ -56,6 +56,26 @@ def test_list_jurisdictions(client: TestClient, db_session: Session):
     assert len(body) == 1
     assert body[0]["name"] == "California"
     assert body[0]["last_synced_at"] is not None
+    assert body[0]["party_counts"] == {"Democratic": 2, "Republican": 1}
+
+
+def test_list_jurisdictions_reports_empty_party_counts_for_unsynced(
+    client: TestClient, db_session: Session
+):
+    empty = Jurisdiction(
+        id="ocd-jurisdiction/country:us/state:wy/government",
+        name="Wyoming",
+        classification="state",
+        last_synced_at=None,
+    )
+    db_session.add(empty)
+    db_session.commit()
+
+    response = client.get("/api/jurisdictions")
+
+    assert response.status_code == 200
+    body = {j["name"]: j for j in response.json()}
+    assert body["Wyoming"]["party_counts"] == {}
 
 
 def test_list_legislators_for_jurisdiction(client: TestClient, db_session: Session):

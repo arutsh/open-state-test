@@ -13,7 +13,7 @@ An approved visual mockup ("Statehouse Register") exists as a static HTML/CSS/JS
 - Preserve accessibility behavior already implied by the mockup: skip link, focus-visible outlines, modal focus trap/return, Escape-to-close, `aria-pressed` on filter pills.
 
 **Non-Goals:**
-- No new backend fields (contact info, committees, term dates, seal images) — the modal only surfaces what the API returns today.
+- No new backend fields beyond the `party_counts` aggregate needed for the landing grid — the legislator modal still surfaces only what the API already returns (no contact info, committees, term dates, seal images).
 - No new backend endpoints, no client-side pagination beyond what the current endpoints already return in full.
 - No general component library / design system adoption beyond this app — tokens and components are local to this frontend.
 - No admin "Sync now" functionality — stays a disabled, preview-only control as in the mockup, since the frontend has no admin auth.
@@ -34,6 +34,8 @@ An approved visual mockup ("Statehouse Register") exists as a static HTML/CSS/JS
 
 **Staleness threshold (72h) is a frontend constant.** The backend doesn't currently expose a staleness flag, only `last_synced_at`. The 72-hour threshold from the mockup is computed client-side against `Date.now()`, matching the mock exactly. *Alternative considered*: make the threshold configurable via env var — rejected as unnecessary for a single hardcoded UI constant; revisit if the backend later wants to own this logic.
 
+**Landing-grid composition data comes from an aggregate field on `GET /api/jurisdictions`, not N per-jurisdiction requests.** Extend `JurisdictionOut` with `party_counts: dict[str, int]`, computed in `list_jurisdictions` via a single grouped query (`SELECT jurisdiction_id, party, COUNT(*) FROM legislators GROUP BY jurisdiction_id, party`) and merged onto the jurisdiction rows in Python — the same `Counter`-based approach `party_summary` already uses, just computed once for all jurisdictions instead of per-request. This avoids both a backend N+1 pattern and 52 parallel frontend requests on landing load. *Alternatives considered*: (a) fetch `GET /party-summary` for all 52 jurisdictions in parallel from the frontend on landing load — rejected, it multiplies request volume for no benefit over a single backend query and forces a per-card loading state for the composition bar; (b) drop composition bars/seat counts from landing cards entirely — rejected, it's a defining visual element of the mockup's landing grid, not an incidental one.
+
 **Legislator photo uses `image_url` with initials fallback.** The schema already returns `image_url` (unused by the current UI). The modal (and optionally the roster/card avatar) uses it when present, falling back to the mockup's initials-avatar treatment when null — a strict improvement over the mockup's initials-only design, using data that's already available for free.
 
 ## Risks / Trade-offs
@@ -42,6 +44,7 @@ An approved visual mockup ("Statehouse Register") exists as a static HTML/CSS/JS
 - [Hardcoding the two-view state in `App.jsx` instead of a router forecloses deep-linking] → Low risk given no current requirement for shareable jurisdiction URLs; the state shape (`view`, `selectedJurisdictionId`) maps cleanly onto route params later if needed.
 - [Dropping the mockup's "Contact" and "Committees" modal sections changes the mockup's look for that one surface] → Intentional scope cut per proposal.md to avoid inventing backend data; flagged to the user so it isn't mistaken for an oversight.
 - [Rewriting all components and their tests is a large, all-at-once diff] → Mitigated by tasks.md sequencing: tokens/fonts first, then landing, then detail/roster, then modal, then tests — each stage independently buildable and reviewable even though it lands as one change.
+- [Computing `party_counts` for every jurisdiction on every `GET /api/jurisdictions` call adds a group-by query to a previously trivial listing endpoint] → Acceptable at this data size (52 jurisdictions, on the order of a few thousand legislators total); the endpoint has no pagination to complicate merging the grouped counts back onto jurisdiction rows.
 
 ## Open Questions
 

@@ -1,15 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import JurisdictionPicker from "./components/JurisdictionPicker";
-import LegislatorFilters from "./components/LegislatorFilters";
-import LegislatorTable from "./components/LegislatorTable";
-import PartySummary from "./components/PartySummary";
-import FreshnessIndicator from "./components/FreshnessIndicator";
-import {
-  fetchJurisdictions,
-  fetchLegislators,
-  fetchPartySummary,
-} from "./api/client";
+import LandingView from "./components/LandingView";
+import DetailView from "./components/DetailView";
+import { fetchJurisdictions } from "./api/client";
 
 function useJurisdictions() {
   const [jurisdictions, setJurisdictions] = useState([]);
@@ -38,130 +31,59 @@ function useJurisdictions() {
   return { jurisdictions, status, error };
 }
 
-function useJurisdictionDetail(jurisdictionId, party, chamber) {
-  const [legislators, setLegislators] = useState([]);
-  const [partySummary, setPartySummary] = useState({});
-  const [status, setStatus] = useState("idle");
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!jurisdictionId) {
-      setLegislators([]);
-      setPartySummary({});
-      setStatus("idle");
-      return;
-    }
-
-    let cancelled = false;
-    setStatus("loading");
-    Promise.all([
-      fetchLegislators(jurisdictionId, { party, chamber }),
-      fetchPartySummary(jurisdictionId),
-    ])
-      .then(([legislatorsData, summaryData]) => {
-        if (cancelled) return;
-        setLegislators(legislatorsData);
-        setPartySummary(summaryData.counts);
-        setStatus("ready");
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err);
-        setStatus("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [jurisdictionId, party, chamber]);
-
-  return { legislators, partySummary, status, error };
-}
-
 export default function App() {
-  const {
-    jurisdictions,
-    status: jurisdictionsStatus,
-    error: jurisdictionsError,
-  } = useJurisdictions();
-  const [selectedId, setSelectedId] = useState("");
-  const [party, setParty] = useState("");
-  const [chamber, setChamber] = useState("");
+  const { jurisdictions, status, error } = useJurisdictions();
+  const [selectedId, setSelectedId] = useState(null);
 
-  const {
-    legislators,
-    partySummary,
-    status: detailStatus,
-    error: detailError,
-  } = useJurisdictionDetail(selectedId, party, chamber);
-
-  const selectedJurisdiction = useMemo(
-    () => jurisdictions.find((j) => j.id === selectedId) || null,
-    [jurisdictions, selectedId]
-  );
-
-  const knownParties = useMemo(
-    () => Object.keys(partySummary).sort(),
-    [partySummary]
-  );
-
-  function handleSelectJurisdiction(id) {
-    setSelectedId(id);
-    setParty("");
-    setChamber("");
-  }
+  const selectedJurisdiction = jurisdictions.find((j) => j.id === selectedId) || null;
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>US Legislator Directory</h1>
-        <p>Current state legislators by jurisdiction and party.</p>
+    <div className="shell">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+
+      <header className="masthead">
+        <div>
+          <div className="wordmark-block">
+            <h1 className="wordmark">Statehouse Register</h1>
+          </div>
+          <p className="tagline">
+            Current legislators across all 52 U.S. state-level jurisdictions, by party.
+          </p>
+        </div>
+        <div className="legend" aria-label="Party color legend">
+          <span className="legend-title">Legend</span>
+          <span className="legend-item">
+            <span className="swatch dem" />
+            Democratic
+          </span>
+          <span className="legend-item">
+            <span className="swatch rep" />
+            Republican
+          </span>
+          <span className="legend-item">
+            <span className="swatch ind" />
+            Independent / Other
+          </span>
+          <span className="legend-item">
+            <span className="swatch vacant" />
+            Vacant
+          </span>
+        </div>
       </header>
 
-      <main className="app-main">
-        {jurisdictionsStatus === "loading" && <p>Loading jurisdictions…</p>}
-        {jurisdictionsStatus === "error" && (
-          <p className="error-state">
-            Could not load jurisdictions: {jurisdictionsError?.message}
-          </p>
+      <main id="main">
+        {status === "loading" && <p>Loading jurisdictions…</p>}
+        {status === "error" && (
+          <p className="error-state">Could not load jurisdictions: {error?.message}</p>
         )}
-        {jurisdictionsStatus === "ready" && (
-          <JurisdictionPicker
-            jurisdictions={jurisdictions}
-            selectedId={selectedId}
-            onSelect={handleSelectJurisdiction}
-          />
-        )}
-
-        {selectedJurisdiction && (
-          <FreshnessIndicator lastSyncedAt={selectedJurisdiction.last_synced_at} />
-        )}
-
-        {detailStatus === "loading" && <p>Loading legislators…</p>}
-        {detailStatus === "error" && (
-          <p className="error-state">
-            Could not load legislators: {detailError?.message}
-          </p>
-        )}
-
-        {detailStatus === "ready" && (
-          <>
-            <PartySummary counts={partySummary} />
-            <LegislatorFilters
-              parties={knownParties}
-              party={party}
-              chamber={chamber}
-              onPartyChange={setParty}
-              onChamberChange={setChamber}
-            />
-            {legislators.length === 0 ? (
-              <p className="empty-state">
-                No data yet for this jurisdiction — sync pending.
-              </p>
-            ) : (
-              <LegislatorTable legislators={legislators} />
-            )}
-          </>
-        )}
+        {status === "ready" &&
+          (selectedJurisdiction ? (
+            <DetailView jurisdiction={selectedJurisdiction} onBack={() => setSelectedId(null)} />
+          ) : (
+            <LandingView jurisdictions={jurisdictions} onSelect={setSelectedId} />
+          ))}
       </main>
     </div>
   );

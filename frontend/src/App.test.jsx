@@ -10,8 +10,9 @@ const jurisdictions = [
   {
     id: "jur/ca",
     name: "California",
-    classification: "state",
+    classification: "State",
     last_synced_at: new Date().toISOString(),
+    party_counts: { Democratic: 1, Republican: 1 },
   },
 ];
 
@@ -24,32 +25,44 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.fetchJurisdictions.mockResolvedValue(jurisdictions);
   api.fetchLegislators.mockResolvedValue(legislators);
-  api.fetchPartySummary.mockResolvedValue({
-    counts: { Democratic: 1, Republican: 1 },
-  });
 });
 
 describe("App", () => {
-  it("loads jurisdictions and shows legislators after selecting one", async () => {
+  it("loads jurisdictions on the landing view, then shows the roster after opening one", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await waitFor(() =>
-      expect(screen.getByText("California")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText("California")).toBeInTheDocument());
 
-    await user.selectOptions(screen.getByLabelText("Jurisdiction"), "jur/ca");
+    await user.click(screen.getByText("California"));
 
     await waitFor(() => {
-      expect(screen.getByText("Alex Rivera")).toBeInTheDocument();
-      expect(screen.getByText("Jordan Lee")).toBeInTheDocument();
+      expect(screen.getAllByText("Alex Rivera").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Jordan Lee").length).toBeGreaterThan(0);
     });
 
-    expect(api.fetchLegislators).toHaveBeenCalledWith("jur/ca", {
-      party: "",
-      chamber: "",
-    });
-    expect(screen.getByText(/last updated/i)).toBeInTheDocument();
+    expect(api.fetchLegislators).toHaveBeenCalledWith("jur/ca");
+  });
+
+  it("filters the roster and opens a legislator modal, then returns to the landing view", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("California")).toBeInTheDocument());
+    await user.click(screen.getByText("California"));
+    await waitFor(() => expect(screen.getAllByText("Alex Rivera").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Democratic" }));
+    expect(screen.queryByText("Jordan Lee")).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByText("Alex Rivera")[0]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: /All jurisdictions/ }));
+
+    await waitFor(() => expect(screen.getByText("California")).toBeInTheDocument());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("shows an error state when jurisdictions fail to load", async () => {
@@ -58,22 +71,6 @@ describe("App", () => {
 
     await waitFor(() =>
       expect(screen.getByText(/could not load jurisdictions/i)).toBeInTheDocument()
-    );
-  });
-
-  it("shows a sync-pending message when a jurisdiction has no legislators", async () => {
-    const user = userEvent.setup();
-    api.fetchLegislators.mockResolvedValue([]);
-    api.fetchPartySummary.mockResolvedValue({ counts: {} });
-    render(<App />);
-
-    await waitFor(() =>
-      expect(screen.getByText("California")).toBeInTheDocument()
-    );
-    await user.selectOptions(screen.getByLabelText("Jurisdiction"), "jur/ca");
-
-    await waitFor(() =>
-      expect(screen.getByText(/sync pending/i)).toBeInTheDocument()
     );
   });
 });

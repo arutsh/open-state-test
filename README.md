@@ -10,6 +10,71 @@ page view.
 - **Backend:** FastAPI + SQLAlchemy + SQLite (dev-only) + Alembic
 - **Frontend:** React (Vite)
 
+## What's implemented
+
+Built in three stages, each tracked as an OpenSpec change under
+`openspec/changes/` (see each one's `proposal.md`/`tasks.md` for full detail):
+
+1. **`legislator-directory`** — the core app: a FastAPI backend that syncs
+   jurisdictions and current legislators from the Open States v3 API into
+   SQLite on a schedule, REST endpoints for jurisdictions / legislators
+   (filterable by party & chamber) / party-summary, and a React frontend to
+   browse them.
+2. **`api-key-env-setup`** — makes the app runnable with zero configuration:
+   with no `OPENSTATES_API_KEY` set, sync falls back to a built-in mock
+   dataset (CA, TX, DC) instead of failing; a real key switches to live data
+   with no code change. Active mode is visible via `GET /health`.
+3. **`frontend-reskin`** — replaced the original flat picker+table UI with a
+   searchable landing grid of jurisdiction cards (composition bars, freshness
+   banner), a per-jurisdiction detail view (chamber composition cards,
+   sortable/filterable roster, desktop table / mobile cards), and a
+   legislator detail modal. Also added a `party_counts` aggregate to
+   `GET /api/jurisdictions` so the landing grid renders from a single request.
+
+A few tasks were left explicitly incomplete or blocked rather than silently
+skipped — e.g. verifying jurisdiction counts against the live Open States API
+(needs a real API key, tracked as `legislator-directory` 3.8/6.1) and a
+manual keyboard-only navigation pass (`frontend-reskin` 8.3). Each is called
+out in its change's `tasks.md`.
+
+## Process notes & known gaps (read before relying on this)
+
+All code in this repo was AI-generated (via Claude Code) from the OpenSpec
+proposals above. What I actually did:
+
+- Wrote/refined the OpenSpec proposals, and reviewed the resulting app
+  visually — ran it, clicked through the flows, compared the reskin against
+  the approved mockup.
+- **I did not read the generated code line-by-line, run a manual code review
+  pass, or run an AI-assisted code review on it.** Beyond what the automated
+  test suites check, I have no confidence in its correctness, security, or
+  edge-case handling.
+- It looks right and the test suites pass, so I'd call it good enough to
+  demo to a potential customer for early feedback — but it should be treated
+  as an MVP prototype, not production-ready code.
+
+What I intended to do but didn't get to, due to time constraints:
+
+- **Code review before every commit.** Everything here landed in two large
+  commits directly on `main` (see `git log`) instead of a reviewed
+  branch/PR per change.
+- **A branch-per-change workflow**, where each OpenSpec change ships on its
+  own branch and only merges to `main` after review and a passing CI run.
+- **CI/CD via GitHub Actions.** There's no `.github/workflows/` in this repo
+  yet. The intent is a pipeline that runs on every push/PR: backend
+  `pytest`, frontend `npm test` + lint, and end-to-end tests (once added) —
+  all required to pass before merging to `main`.
+- **A real, repeatable end-to-end test suite.** Frontend verification (see
+  `frontend-reskin` task 8) was done via one-off scripted Playwright passes
+  and manual screenshot review during development, not an e2e suite checked
+  into the repo and run in CI.
+- Live-API verification (`legislator-directory` 3.8, 6.1) is still blocked
+  on a real `OPENSTATES_API_KEY`.
+
+Before this goes beyond a demo: get a human (or AI) code review done on the
+existing code, stand up the branch + CI workflow above, and add a checked-in
+e2e suite.
+
 ## Prerequisites
 
 - Python 3.11+ and [`uv`](https://github.com/astral-sh/uv) (or `pip`)
