@@ -1,0 +1,147 @@
+.app {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  margin-bottom: 8px;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.jurisdiction-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.jurisdiction-picker select,
+.legislator-filters select {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.legislator-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.legislator-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.freshness-indicator {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.error-state {
+  color: #d1495b;
+}
+
+.empty-state {
+  color: var(--text);
+  font-style: italic;
+}
+
+.party-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.party-summary-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.party-summary-label {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.party-summary-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.party-summary-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.party-summary-count {
+  text-align: right;
+}
+
+.legislator-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.legislator-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.legislator-table th,
+.legislator-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.legislator-table th {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 16px 16px 32px;
+  }
+
+  .legislator-filters {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .party-summary-row {
+    grid-template-columns: 80px 1fr 32px;
+  }
+}
