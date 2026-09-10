@@ -6,13 +6,12 @@ from sqlalchemy.orm import Session
 from app.models.jurisdiction import Jurisdiction
 from app.models.legislator import Legislator
 from app.services.openstates_client import OpenStatesClient
+from app.services.sync_source import SyncSource, get_sync_source
 
 logger = logging.getLogger(__name__)
 
 
-def sync_jurisdictions(
-    db: Session, client: OpenStatesClient
-) -> list[Jurisdiction]:
+def sync_jurisdictions(db: Session, client: SyncSource) -> list[Jurisdiction]:
     raw_jurisdictions = client.get_jurisdictions(classification="state")
 
     synced: list[Jurisdiction] = []
@@ -38,7 +37,7 @@ def _extract_district(current_role: dict) -> str | None:
 
 
 def sync_legislators(
-    db: Session, client: OpenStatesClient, jurisdiction: Jurisdiction
+    db: Session, client: SyncSource, jurisdiction: Jurisdiction
 ) -> None:
     raw_people = client.get_people(jurisdiction.id)
 
@@ -73,9 +72,11 @@ def sync_legislators(
 
 
 def run_full_sync(
-    db: Session, client: OpenStatesClient | None = None
+    db: Session, client: SyncSource | None = None
 ) -> dict[str, list[str]]:
-    client = client or OpenStatesClient()
+    client = client or get_sync_source()
+    mode = "live" if isinstance(client, OpenStatesClient) else "mock"
+    logger.info("Starting full sync in %s mode (%s)", mode, type(client).__name__)
 
     jurisdictions = sync_jurisdictions(db, client)
 

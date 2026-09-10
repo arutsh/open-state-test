@@ -15,7 +15,7 @@ page view.
 - Python 3.11+ and [`uv`](https://github.com/astral-sh/uv) (or `pip`)
 - Node.js 18+
 - An [Open States API key](https://openstates.org/account/profile/)
-  (free) — required for syncing real data
+  (free) — optional, see below
 
 ## Backend setup
 
@@ -25,7 +25,8 @@ uv venv .venv
 uv pip install -r requirements.txt --python .venv/bin/python
 
 cp .env.example .env
-# edit .env and set OPENSTATES_API_KEY to your real key
+# leave OPENSTATES_API_KEY blank to run on mock data, or set it to a
+# real key to sync live data -- see "Live data vs. mock data" below
 
 .venv/bin/alembic upgrade head
 .venv/bin/uvicorn app.main:app --reload
@@ -34,6 +35,28 @@ cp .env.example .env
 The API is now running at http://localhost:8000 (interactive docs at
 `/docs`). On startup it also schedules a background sync every
 `SYNC_INTERVAL_HOURS` (default 24).
+
+### Live data vs. mock data
+
+The app runs out of the box with **no API key required**. Whether a
+sync hits the real Open States API or a small built-in mock dataset is
+decided automatically from `OPENSTATES_API_KEY` — no code changes
+either way:
+
+- **Blank, unset, or left as the `.env.example` placeholder** → the
+  sync uses `MockOpenStatesClient`, a fixed sample of a few
+  jurisdictions (CA, TX, DC) and legislators. No network call is made.
+- **Set to a real key** → the sync uses `OpenStatesClient` and calls
+  the live `GET /jurisdictions` and `GET /people` endpoints.
+
+Check which mode is active anytime:
+
+```bash
+curl http://localhost:8000/health
+# -> {"status":"ok","data_source":"mock"}   (or "live")
+```
+
+The active mode is also logged once at the start of every sync run.
 
 ### Running a sync
 
@@ -49,7 +72,7 @@ curl -X POST http://localhost:8000/sync \
 (defaults to `dev-sync-token`). The sync runs in the background; check
 `GET /api/jurisdictions` afterwards to see `last_synced_at` populate
 per jurisdiction. Re-run this any time after an election to refresh
-officeholders.
+officeholders (with a real key configured).
 
 ### Backend tests
 

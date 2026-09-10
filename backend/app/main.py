@@ -32,4 +32,5 @@ app.include_router(sync.router)
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    data_source = "live" if get_settings().has_openstates_api_key() else "mock"
+    return {"status": "ok", "data_source": data_source}

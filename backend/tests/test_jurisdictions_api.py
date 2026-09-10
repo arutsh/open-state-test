@@ -127,6 +127,29 @@ def test_party_summary_unknown_jurisdiction_returns_404(
     assert response.status_code == 404
 
 
+def test_health_reports_mock_data_source_by_default(client: TestClient):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["data_source"] == "mock"
+
+
+def test_health_reports_live_data_source_when_key_configured(
+    client: TestClient, mocker
+):
+    from app.config import Settings
+
+    mocker.patch(
+        "app.main.get_settings",
+        return_value=Settings(openstates_api_key="sk-live-real-key"),
+    )
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["data_source"] == "live"
+
+
 def test_sync_endpoint_requires_admin_token(client: TestClient):
     response = client.post("/sync")
 

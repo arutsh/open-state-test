@@ -1,10 +1,11 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from app.config import get_settings
 from app.services.mock_openstates_client import MockOpenStatesClient
 from app.services.openstates_client import OpenStatesClient
 
 
+@runtime_checkable
 class SyncSource(Protocol):
     def get_jurisdictions(
         self, classification: str = "state"
